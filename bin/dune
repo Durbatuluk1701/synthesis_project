@@ -1,0 +1,4 @@
+(executable
+ (public_name synthesis_project)
+ (name main)
+ (libraries synthesis_project))
