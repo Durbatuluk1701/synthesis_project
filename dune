@@ -1,2 +1,5 @@
 (executable
  (name Lang))
+(env
+  (dev
+    (flags (:standard -w -34))))
