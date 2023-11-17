@@ -18,6 +18,8 @@ type ('G,'V) spec =
 
 type ('G,'V) semGus = 'G * ('G,'V) semantics * ('G,'V) spec
 
+type smt_clause = bool
+
 (* We want to be able to take a grammar 'G, 
    its semantics, and a specification.
 

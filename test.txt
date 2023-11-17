@@ -1,0 +1,41 @@
+(* class ntDecl (ntName : string) (ntType : sort) (ntRel : relDecl) =
+  object(self)
+    inherit decl
+    method purify: ntDecl =
+      new ntDecl (self#purifyName ntName) (self#purifyName ntType) (ntRel#purify)
+    method toString =
+      "(declare-nt " ^ ntName ^ " " ^ ntType ^ " " ^ 
+      "(" ^ ntRel ^ " (" ^ (String.concat " " ntRel) ^ "))" ^ ")"
+  
+  end
+
+class semanticCHC (decl : relDecl) (vars : smtVariable set) (head : smtFormula) (tail : smtFormula) =
+  object
+    inherit semgusEvent
+    method purify : semanticCHC =
+      new semanticCHC decl#purify (List.map (fun x -> x#purify) vars) head#purify tail#purify
+  end *)
+(* 
+class smtVariable (name : string) (tp : sort) =
+  object(self)
+    inherit semgusElement
+    method purify : smtVariable =
+      new smtVariable (self#purifyName name) tp
+  end
+
+class smtConstraint (formula : smtFormula) =
+  object(self)
+    inherit semgusEvent
+    method purify : smtConstraint =
+      new smtConstraint (formula#purify)
+  end
+
+class semgusFile (commands : semgusEvent list) = 
+  object(self)
+    method purify : semgusFile = 
+      new semgusFile (List.map (fun (x : semgusEvent) -> x#purify) commands)
+    method toString : string =
+      String.concat "\n" (List.map (fun x -> x#toString) commands)
+  end
+
+let semgus2SMT (semgusFile : semgusFile) : smtCommand list = [] *)

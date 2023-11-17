@@ -1,5 +1,6 @@
 (executable
- (name Lang))
+ (name Generator))
 (env
   (dev
-    (flags (:standard -w -34))))
+    (flags (:standard -w -34 -w -32 -w -27))
+   ))
