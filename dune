@@ -1,5 +1,5 @@
-(executable
- (name Generator))
+(executable (name Generator))
+(executable (name semgusTypes))
 (env
   (dev
     (flags (:standard -w -34 -w -32 -w -27))
