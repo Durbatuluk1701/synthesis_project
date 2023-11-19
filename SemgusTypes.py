@@ -1,14 +1,4 @@
-from typing import TypeVar
-
-T = TypeVar('T')
-
-def list_to_str (sep : str, l : list[T]) -> str:
-  retStr: str = ""
-  for i in range(len(l)):
-    retStr += l[i].tostr
-    if (i == len(l)):
-      retStr += sep
-  return retStr
+import Utils;
 
 class SemgusElement:
   def __init__(self):
@@ -57,7 +47,7 @@ class LHSProductionSet(SemgusElement):
     super().__init__()
     self.lhs = lhs
     self.rhsList = rhsList
-    self.tostr = f"({lhs.tostr}\n" + list_to_str('\n', rhsList) + ")"
+    self.tostr = f"({lhs.tostr}\n" + Utils.list_to_str('\n', rhsList) + ")"
   def purify(self):
     return LHSProductionSet(self.lhs.purify(), map(lambda x: x.purify(), self.rhsList))
 
@@ -67,7 +57,7 @@ class SynthFun(SemgusElement):
     self.name = name
     self.termType = termType
     self.grm = grm
-    self.tostr = f"(synth-term {name} {termType}\n(" + (list_to_str('\n', grm)) + ")\n)\n"
+    self.tostr = f"(synth-term {name} {termType}\n(" + (Utils.list_to_str('\n', grm)) + ")\n)\n"
   def purify(self):
     return SynthFun(self.purifyName(self.name), self.purifyName(self.termType), purifyMap(self.grm))
 
@@ -76,7 +66,7 @@ class RHSOp(SemgusElement):
     super().__init__()
     self.opName = opName
     self.args = args
-    self.tostr = f"({opName} " + list_to_str("\n", args) + ")"
+    self.tostr = f"({opName} " + Utils.list_to_str("\n", args) + ")"
   def purify(self):
     return RHSOp(self.purifyName(self.opName), purifyMap(self.args))
 
@@ -126,7 +116,7 @@ class RelDecl(SemgusElement):
     super().__init__()
     self.relName = relName
     self.args = args
-    self.tostr = f"(declare-rel {relName} " +  list_to_str(" ", args) + ")"
+    self.tostr = f"(declare-rel {relName} " +  Utils.list_to_str(" ", args) + ")"
   def purify(self):
     return RelDecl(self.purifyName(self.relName, map(self.purifyName, self.args)))
 
@@ -136,7 +126,7 @@ class NTDecl(SemgusElement):
     self.ntName = ntName
     self.ntType = ntType
     self.ntRel = ntRel
-    self.tostr = f"(declare-nt {ntName} {ntType} ({ntRel.relName} (" + list_to_str(" ", ntRel.args) + ")))"
+    self.tostr = f"(declare-nt {ntName} {ntType} ({ntRel.relName} (" + Utils.list_to_str(" ", ntRel.args) + ")))"
   def purify(self):
     return NTDecl(self.purifyName(self.ntName), self.purifyName(self.ntType, self.ntRel.purify()))
 
@@ -172,6 +162,6 @@ class SmtConstraint(SemgusElement):
 class SemgusFile:
   def __init__(self, commands : list[SemgusElement]):
     self.commands: list[SemgusElement] = commands
-    self.tostr: str = list_to_str("\n", commands)
+    self.tostr: str = Utils.list_to_str("\n", commands)
   def purify(self):
     return SemgusFile(map(lambda x: x.purify(), self.commands))
