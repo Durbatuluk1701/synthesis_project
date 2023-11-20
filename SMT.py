@@ -1,4 +1,5 @@
-import Utils;
+from typing import Sequence
+import Utils
 
 class SMT:
   def __init__(self):
@@ -29,7 +30,7 @@ class SMTVarDeclaration(Declaration):
     self.toString = f"(declare-var {varName} {sortName})"
 
 class SMTRelDeclaration(Declaration):
-  def __init__(self, relName : str, sortNames: list[str]):
+  def __init__(self, relName : str, sortNames: Sequence[str]):
     super().__init__()
     self.relName = relName
     self.sortNames = sortNames
@@ -47,7 +48,7 @@ class SMTAccessor:
     pass
 
 class SMTOpConstructor(SMTConstructor):
-  def __init__(self, name : str, accessors : list[SMTAccessor]):
+  def __init__(self, name : str, accessors : Sequence[SMTAccessor]):
     super().__init__()
     self.name = name
     self.accessors = accessors
@@ -60,14 +61,14 @@ class SMTLeafConstructor(SMTConstructor):
     self.toString = name
 
 class SMTDatatypeDeclaration(Declaration):
-  def __init__(self, typeName : str, constructors : list[SMTConstructor]):
+  def __init__(self, typeName : str, constructors : Sequence[SMTConstructor]):
     super().__init__()
     self.typeName = typeName
     self.constructors = constructors
     self.toString = f"({typeName} " + Utils.sequence_to_str(" ", constructors) + ")"
 
 class SMTRecDatatypeDeclaration(Declaration):
-  def __init__(self, types : list[SMTDatatypeDeclaration]):
+  def __init__(self, types : Sequence[SMTDatatypeDeclaration]):
     super().__init__()
     self.types = types
     self.toString = f"(declare-datatypes () (" + Utils.sequence_to_str("\n", types) + "))"

@@ -1,4 +1,4 @@
-from typing import Any, Sequence, TypeVar, Protocol
+from typing import Any, Sequence
 import Utils;
 
 class SemgusElement:
@@ -37,8 +37,16 @@ class LHS(SemgusElement):
   def purify(self):
     return LHS(self.nt.purify())
 
-class RHS(SemgusElement):
-  def __init__(self, rhsExp : SemgusElement):
+class RHSExp(SemgusElement):
+  def __init__(self):
+    super().__init__()
+
+class RHSAtom(RHSExp):
+  def __init__(self):
+    super().__init__()
+
+class RHS(RHSExp):
+  def __init__(self, rhsExp : RHSExp):
     super().__init__()
     self.rhsExp = rhsExp
   def __str__(self) -> str:
@@ -67,8 +75,8 @@ class SynthFun(SemgusElement):
   def purify(self):
     return SynthFun(self.purifyName(self.name), self.purifyName(self.termType), purifyMap(self.grm))
 
-class RHSOp(SemgusElement):
-  def __init__(self, opName : str, args : Sequence[SemgusElement]):
+class RHSOp(RHSExp):
+  def __init__(self, opName : str, args : Sequence[RHSAtom]):
     super().__init__()
     self.opName = opName
     self.args = args
@@ -77,7 +85,7 @@ class RHSOp(SemgusElement):
   def purify(self):
     return RHSOp(self.purifyName(self.opName), purifyMap(self.args))
 
-class RHSNt(SemgusElement):
+class RHSNt(RHSAtom):
   def __init__(self, nt : NonTerminal):
     super().__init__()
     self.nt = nt
@@ -86,7 +94,7 @@ class RHSNt(SemgusElement):
   def purify(self):
     return RHSNt(self.nt.purify())
 
-class RHSLeaf(SemgusElement):
+class RHSLeaf(RHSAtom):
   def __init__(self, leafName : str):
     super().__init__()
     self.leafName = leafName
