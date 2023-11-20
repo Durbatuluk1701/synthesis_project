@@ -33,7 +33,7 @@ class SMTRelDeclaration(Declaration):
     super().__init__()
     self.relName = relName
     self.sortNames = sortNames
-    self.toString = f"(declare-rel {relName} (" + Utils.list_to_str(" ", sortNames) + "))"
+    self.toString = f"(declare-rel {relName} (" + Utils.sequence_to_str(" ", sortNames) + "))"
 
 class SMTConstructor:
   def __init__(self): 
@@ -51,7 +51,7 @@ class SMTOpConstructor(SMTConstructor):
     super().__init__()
     self.name = name
     self.accessors = accessors
-    self.toString = f"({name} " + Utils.list_to_str(" ", accessors) + ")"
+    self.toString = f"({name} " + Utils.sequence_to_str(" ", accessors) + ")"
     
 class SMTLeafConstructor(SMTConstructor):
   def __init__(self, name : str):
@@ -64,13 +64,13 @@ class SMTDatatypeDeclaration(Declaration):
     super().__init__()
     self.typeName = typeName
     self.constructors = constructors
-    self.toString = f"({typeName} " + Utils.list_to_str(" ", constructors) + ")"
+    self.toString = f"({typeName} " + Utils.sequence_to_str(" ", constructors) + ")"
 
 class SMTRecDatatypeDeclaration(Declaration):
   def __init__(self, types : list[SMTDatatypeDeclaration]):
     super().__init__()
     self.types = types
-    self.toString = f"(declare-datatypes () (" + Utils.list_to_str("\n", types) + "))"
+    self.toString = f"(declare-datatypes () (" + Utils.sequence_to_str("\n", types) + "))"
 
 class SMTFormulaHolder(SMTExpr):
   def __init__(self, formula : str):
