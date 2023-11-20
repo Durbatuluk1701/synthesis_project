@@ -1,5 +1,5 @@
 from os import write
-from typing import Optional, TypeVar
+from typing import Optional, TypeVar, Callable
 
 T = TypeVar('T')
 
@@ -23,3 +23,9 @@ def filterNones(l : list[Optional[T2]]) -> list[T2]:
 def writeToFile(outFile : str, value : str) -> None:
   with open(outFile, "w") as fd:
     write(fd, value)
+
+def trueMap(fn : Callable[[T], T2], list : list[T]) -> list[T2]:
+  retL: list[T2] = []
+  for i in list:
+    retL += fn(i)
+  return retL
