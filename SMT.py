@@ -20,21 +20,24 @@ class SMTExpr(SMTCommand):
 class Skip(SMTCommand):
   def __init__(self):
     super().__init__()
-    self.toString: str = ""
+  def __str__(self) -> str:
+    return ""
 
 class SMTVarDeclaration(Declaration):
   def __init__(self, varName : str, sortName : str):
     super().__init__()
     self.varName = varName
     self.sortName = sortName
-    self.toString = f"(declare-var {varName} {sortName})"
+  def __str__(self) -> str:
+    return f"(declare-var {self.varName} {self.sortName})"
 
 class SMTRelDeclaration(Declaration):
   def __init__(self, relName : str, sortNames: Sequence[str]):
     super().__init__()
     self.relName = relName
     self.sortNames = sortNames
-    self.toString = f"(declare-rel {relName} (" + Utils.sequence_to_str(" ", sortNames) + "))"
+  def __str__(self) -> str:
+    return f"(declare-rel {self.relName} (" + Utils.sequence_to_str(" ", self.sortNames) + "))"
 
 class SMTConstructor:
   def __init__(self): 
@@ -44,50 +47,57 @@ class SMTAccessor:
   def __init__(self, accessorName : str, argSort : str):
     self.accessorName = accessorName
     self.argSort = argSort
-    self.toString = f"({accessorName} {argSort})"
-    pass
+  def __str__(self) -> str:
+    return f"({self.accessorName} {self.argSort})"
 
 class SMTOpConstructor(SMTConstructor):
   def __init__(self, name : str, accessors : Sequence[SMTAccessor]):
     super().__init__()
     self.name = name
     self.accessors = accessors
-    self.toString = f"({name} " + Utils.sequence_to_str(" ", accessors) + ")"
+  def __str__(self) -> str:
+    return f"({self.name} " + Utils.sequence_to_str(" ", self.accessors) + ")"
     
 class SMTLeafConstructor(SMTConstructor):
   def __init__(self, name : str):
     super().__init__()
     self.name = name
-    self.toString = name
+  def __str__(self) -> str:
+    return self.name
 
 class SMTDatatypeDeclaration(Declaration):
   def __init__(self, typeName : str, constructors : Sequence[SMTConstructor]):
     super().__init__()
     self.typeName = typeName
     self.constructors = constructors
-    self.toString = f"({typeName} " + Utils.sequence_to_str(" ", constructors) + ")"
+  def __str__(self) -> str:
+    return f"({self.typeName} " + Utils.sequence_to_str(" ", self.constructors) + ")"
 
 class SMTRecDatatypeDeclaration(Declaration):
   def __init__(self, types : Sequence[SMTDatatypeDeclaration]):
     super().__init__()
     self.types = types
-    self.toString = f"(declare-datatypes () (" + Utils.sequence_to_str("\n", types) + "))"
+  def __str__(self) -> str:
+    return f"(declare-datatypes () (" + Utils.sequence_to_str("\n", self.types) + "))"
 
 class SMTFormulaHolder(SMTExpr):
   def __init__(self, formula : str):
     super().__init__()
     self.formula = formula
-    self.toString = formula
+  def __str__(self) -> str:
+    return self.formula
 
 class CHCRule(SMTCommand):
   def __init__(self, premise : SMTFormulaHolder, conclusion : SMTFormulaHolder):
     super().__init__()
     self.premise = premise
     self.conclusion = conclusion
-    self.toString = f"(rule (=> {premise.toString} {conclusion.toString}))"
+  def __str__(self) -> str:
+    return f"(rule (=> {str(self.premise)} {str(self.conclusion)}))"
 
 class CHCQuery(SMTCommand):
   def __init__(self, query : SMTFormulaHolder):
     super().__init__()
     self.query = query
-    self.toString = f"(query {query.toString})"
+  def __str__(self) -> str:
+    return f"(query {str(self.query)})"
