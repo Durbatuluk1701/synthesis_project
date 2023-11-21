@@ -1,5 +1,3 @@
-from lib2to3.pytree import LeafPattern
-from time import process_time
 from typing import Mapping, Sequence
 import SemgusTypes as SGT
 import SMT
@@ -219,3 +217,4 @@ def semgus2SMT(semgusFile: SGT.SemgusFile) -> Sequence[SMT.SMTCommand]:
   returnSequence.append(query)
 
   return returnSequence
+

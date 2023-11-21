@@ -114,6 +114,7 @@ class StrToken(Token):
   def __str__(self) -> str:
     return self.s
 
+# TODO: This class can definitely be optimized
 class Lexer:
   def __init__(self) -> None:
     pass
