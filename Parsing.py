@@ -114,5 +114,42 @@ class StrToken(Token):
   def __str__(self) -> str:
     return self.s
 
+class Lexer:
+  def __init__(self) -> None:
+    pass
+  def recursiveTokenize(self, input: list[str], currentStr : str, tokenList: list[Token]) -> list[Token]:
+    if len(input) > 0:
+      first = input[0]
+      rest = input[1:]
+      if (first == "("):
+        tokenList.append(StrToken(currentStr))
+        tokenList.append(LParen())
+        return self.recursiveTokenize(rest, "", tokenList)
+      if (first == ")"):
+        tokenList.append(StrToken(currentStr))
+        tokenList.append(RParen())
+        return self.recursiveTokenize(rest, "", tokenList)
+      if (first == " " or first == "\t"):
+        tokenList.append(StrToken(currentStr))
+        tokenList.append(Whitespace())
+        return self.recursiveTokenize(rest, "", tokenList)
+      if (first == "\n" or first == "\r"):
+        tokenList.append(StrToken(currentStr))
+        tokenList.append(Newline())
+        return self.recursiveTokenize(rest, "", tokenList)
+      if (first == ";"):
+        tokenList.append(StrToken(currentStr))
+        tokenList.append(SemiColon())
+        return self.recursiveTokenize(rest, "", tokenList)
+      else:
+        return self.recursiveTokenize(rest, currentStr + first, tokenList)
+    return tokenList
+  def tokenize(self, input: list[str]) -> list[Token]:
+    tokenList = self.recursiveTokenize(input, "", [])
+    retList = []
+    for t in tokenList:
+      if not t.isEmpty:
+        retList.append(t)
+    return retList
 
 
