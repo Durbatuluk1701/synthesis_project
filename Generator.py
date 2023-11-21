@@ -1,8 +1,9 @@
+from lib2to3.pytree import LeafPattern
 from time import process_time
 from typing import Mapping, Sequence
 import SemgusTypes as SGT
 import SMT
-from Utils import filterNones, sequence_to_str, trueMap
+from Utils import ImpossibleError, filterNones, sequence_to_str, trueMap
 
 counter = 0
 realizableDecl = SMT.SMTRelDeclaration("realizable", [])
@@ -55,9 +56,7 @@ def genConstructorFromRHSExp(ntcTxt: NTCtxt, leafcTxt: LeafCtxt, rhsExp: SGT.RHS
     return SMT.SMTOpConstructor(accessorName, [SMT.SMTAccessor(accessorName, ntcTxt[rhsExp.nt.ntName])])
   if (isinstance(rhsExp, SGT.RHSLeaf)):
     return SMT.SMTLeafConstructor(rhsExp.leafName)
-  # NOTE: This should never truly be hit as all constructed
-  # classes will be of these types
-  raise NotImplementedError
+  raise ImpossibleError("This should never have been reached!")
 
 def genDatatypeDecl(ntcTxt: NTCtxt, leafCtxt: LeafCtxt, prods: Sequence[SGT.LHSProductionSet]) -> SMT.SMTRecDatatypeDeclaration:
   constructorMap: Mapping[str, Sequence[SMT.SMTConstructor]] = {}
@@ -118,13 +117,40 @@ def genSyntaxRules(l : Sequence[SGT.LHSProductionSet]) -> tuple[Sequence[SMT.CHC
     head = SMT.SMTFormulaHolder(f"({headRel} {headVar})")
     premisesDecls: Sequence[tuple[SMT.SMTFormulaHolder, set[SMT.SMTVarDeclaration]]] = []
     for rhs in lhs.rhsList:
-      # TODO: This still needs to be implemented
       if (isinstance(rhs, SGT.RHSOp)):
-        pass
+        rhsTermStringVals: Sequence[str] = []
+        rhsPremisesVals: Sequence[SMT.SMTFormulaHolder] = []
+        rhsVarDecls: set[SMT.SMTVarDeclaration] = set()
+        for i in range(len(rhs.args)):
+          arg = rhs.args[i]
+          if (isinstance(arg, SGT.RHSNt)):
+            rhsTermStringVals.append(synVarName(arg.nt.ntName, i+1))
+            rhsPremisesVals.append(SMT.SMTFormulaHolder(f"({synRelName(arg.nt.ntName)} {synVarName(arg.nt.ntName, i + 1)})"))
+            rhsVarDecls.add(SMT.SMTVarDeclaration(synVarName(arg.nt.ntName, i + 1), arg.nt.ntType))
+
+          if (isinstance(arg, SGT.RHSLeaf)):
+            rhsTermStringVals.append(arg.leafName)
+            rhsPremisesVals.append(SMT.SMTFormulaHolder("true"))
+
+          else:
+            raise ImpossibleError("Error, only types shouldve been RHSNt and RHSLeaf")
+        rhsTermString = sequence_to_str(" ", rhsTermStringVals)
+        rhsPremiseString = sequence_to_str(" ", rhsPremisesVals)
+        eqString = f"(= {headVar} ({rhs.opName} {rhsTermString}))"
+        premisesDecls.append((SMT.SMTFormulaHolder(f"(and {eqString} {rhsPremiseString})"), rhsVarDecls))
       if (isinstance(rhs, SGT.RHSNt)):
-        pass
+        rhsVar = synVarName(rhs.nt.ntName, 1)
+        rhsRel = synRelName(rhs.nt.ntName)
+        premisesDecls.append(
+          (SMT.SMTFormulaHolder(f"add ((= {rhsVar} {headVar}) ({rhsRel} {rhsVar}))"), set([SMT.SMTVarDeclaration(rhsVar, rhs.nt.ntType)]))
+          )
+        continue
       if (isinstance(rhs, SGT.RHSLeaf)):
-        pass
+        premisesDecls.append(
+          (SMT.SMTFormulaHolder(f"(= {headVar} {rhs.leafName})"),
+           set())
+        )
+        continue
     premises: Sequence[SMT.CHCRule] = []
     decls: set[SMT.SMTVarDeclaration] = set()
     for (fh, vd) in premisesDecls:
@@ -158,20 +184,38 @@ def semgus2SMT(semgusFile: SGT.SemgusFile) -> Sequence[SMT.SMTCommand]:
   rest = filterNones(trueMap(lambda x: None if (isinstance(x, SGT.SmtConstraint) or isinstance(x, SGT.SynthFun) or isinstance(x, SGT.LHSProductionSet)) else x, semgusFile.commands))
   
   (nctxt, lctxt, datatypeDecls) = translateLHSProductionSet(univGrm)
-  semanticRules = chcEvents.map{translateCHC}
-  semanticVarDecls = chcEvents.foldLeft(Set(): Set[SMTVarDeclaration]){
-    case (acc, event) => acc.union(genSemVarDecls(event))}.toList
-  semanticDecls = chcEvents.foldLeft(Set(): Set[SMTRelDeclaration]){
-    case (acc, event) => acc + genSemRelDecls(event)}.toList
+  
+  semanticRules = trueMap(translateCHC, chcEvents)
 
-  (syntaxVarDecls, syntaxRelDecls, syntaxRules) =
-    synthFuns.foldLeft((Set(): Set[SMTVarDeclaration], Set(): Set[SMTRelDeclaration], Nil: List[CHCRule])){
-      case ((varacc, relacc, ruleacc), s) => val (varset, relset, rulelist) = translateSynthFun(s)
-      (varacc.union(varset), relacc.union(relset), ruleacc:::rulelist)
-  }
+  semanticVarDeclsSet: set[SMT.SMTVarDeclaration] = set()
+  semanticDeclsSet: set[SMT.SMTRelDeclaration] = set()
+  for ev in chcEvents:
+    semanticVarDeclsSet.union(genSemVarDecls(ev))
+    semanticDeclsSet.add(genSemRelDecls(ev))
+  semanticVarDecls: list[SMT.SMTVarDeclaration] = list(semanticVarDeclsSet)
+  semanticDecls: list[SMT.SMTRelDeclaration] = list(semanticDeclsSet)
 
+  syntaxVarDecls: set[SMT.SMTVarDeclaration] = set()
+  syntaxRelDecls: set[SMT.SMTRelDeclaration] = set()
+  syntaxRules: Sequence[SMT.CHCRule] = []
+  for fn in synthFuns:
+    (varset, relset, rulelist) = translateSynthFun(fn)
+    syntaxVarDecls.union(varset)
+    syntaxRelDecls.union(relset)
+    syntaxRules.extend(rulelist)
+    
   specCHC = genSpecificationCHC(constraints)
-  datatypeDecls::semanticVarDecls:::syntaxVarDecls.toList:::semanticDecls:::(realizableDecl::Nil):::
-    syntaxRelDecls.toList:::syntaxRules:::semanticRules:::(specCHC::query::Nil)
 
-  raise NotImplementedError
+  returnSequence: Sequence[SMT.SMTCommand] = []
+  returnSequence.append(datatypeDecls)
+  returnSequence.extend(semanticVarDecls)
+  returnSequence.extend(list(syntaxVarDecls))
+  returnSequence.extend(semanticDecls)
+  returnSequence.append(realizableDecl)
+  returnSequence.extend(list(syntaxRelDecls))
+  returnSequence.extend(syntaxRules)
+  returnSequence.extend(semanticRules)
+  returnSequence.append(specCHC)
+  returnSequence.append(query)
+
+  return returnSequence

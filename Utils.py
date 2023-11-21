@@ -28,3 +28,8 @@ def trueMap(fn : Callable[[T], T2], list : Sequence[T]) -> Sequence[T2]:
   for i in list:
     retL.append(fn(i))
   return retL
+
+class ImpossibleError(Exception):
+    def __init__(self, message="This should never have happened!"):
+        self.message = message
+        super().__init__(self.message)
