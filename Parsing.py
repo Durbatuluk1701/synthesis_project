@@ -153,4 +153,68 @@ class Lexer:
         retList.append(t)
     return retList
 
+class ParseResult:
+  def __init__(self, res : SExpr, rem : list[Token]) -> None:
+    self.res = res
+    self.rem = rem
+
+class ParseError(Exception):
+    def __init__(self, message="Error encountered during parsing"):
+        self.message = message
+        super().__init__(self.message)
+
+class Parser:
+  def __init__(self) -> None:
+    pass
+  def parseNewComment(self, tokens: list[Token]) -> list[Token]:
+    if (isinstance(tokens[0], Newline)):
+      return tokens[1:]
+    return self.parseNewComment(tokens[1:])
+  
+  def parseNewString(self, tokens : list[Token], builtStr: str) -> ParseResult:
+    head = tokens[0]
+    tail = tokens[1:]
+    if (isinstance(head, Quote)):
+      return ParseResult(SExprString(builtStr), tail)
+    if (isinstance(head, Newline)):
+      raise ParseError("Newlines should not be found in string literals")
+    return self.parseNewString(tail, builtStr + str(head))
+
+  def parseNewSExpr(self, tokens: list[Token], sexprs : list[SExpr]) -> ParseResult:
+    head = tokens[0]
+    tail = tokens[1:]
+    if (isinstance(head, LParen)):
+      p = self.parseNewSExpr(tail, [])
+      sexprs.append(p.res)
+      return self.parseNewSExpr(p.rem, sexprs)
+    if (isinstance(head, RParen)):
+      return ParseResult(SExprList(sexprs), tail)
+    if (isinstance(head, Whitespace) or isinstance(head, Newline)):
+      return self.parseNewSExpr(tail, sexprs)
+    if (isinstance(head, Quote)):
+      p = self.parseNewString(tail, "")
+      sexprs.append(p.res)
+      return self.parseNewSExpr(p.rem, sexprs)
+    if (isinstance(head, SemiColon)):
+      return self.parseNewSExpr(self.parseNewComment(tail), sexprs)
+    if (isinstance(head, StrToken)):
+      s = head.s
+      t: SExpr | None = None
+      if (s.isdigit()):
+        t = SExprInt(int(s))
+      elif (s == "true"):
+        t = SExprBool(True)
+      elif (s == "false"):
+        t = SExprBool(False)
+      elif (s[0:2] == "#x"):
+        t = SExprBV(int(s[2:],16))
+      else:
+        t = SExprName(s)
+      sexprs.append(t)
+      return self.parseNewSExpr(tail, sexprs)
+    raise ImpossibleError("this shouldn't be hit unless an unconstructable token type is used")
+
+  def parse(self, tokens : list[Token]) -> SExpr:
+    tokens.append(RParen())
+    return self.parseNewSExpr(tokens, []).res
 

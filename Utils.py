@@ -29,6 +29,11 @@ def trueMap(fn : Callable[[T], T2], list : Sequence[T]) -> Sequence[T2]:
     retL.append(fn(i))
   return retL
 
+def trueFold(fn : Callable[[T, T2], T2], acc: T2, list: Sequence[T]) -> T2:
+  for i in list:
+    acc = fn(i, acc)
+  return acc
+
 class ImpossibleError(Exception):
     def __init__(self, message="This should never have happened!"):
         self.message = message
