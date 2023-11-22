@@ -1,4 +1,4 @@
-from typing import Any, Sequence
+from typing import Any 
 import Utils;
 
 class SemgusElement:
@@ -9,14 +9,20 @@ class SemgusElement:
       return f"purified{name}"
     else:
       return name
-  def purify(self):
+  def purify(self) -> 'SemgusElement':
     raise NotImplementedError
 
-def purifyMap(l : Sequence[Any]) -> Sequence[Any]:
+def purifyMap(l : list[Any]) -> list[Any]:
   acc = []
   for val in l:
     acc.append(val.purify())
   return acc
+
+class SemgusEvent(SemgusElement):
+  def __init__(self):
+    super().__init__()
+  def purify(self) -> 'SemgusEvent':
+    raise NotImplementedError
 
 class NonTerminal(SemgusElement):
   def __init__(self, ntName : str, ntType : str):
@@ -40,6 +46,8 @@ class LHS(SemgusElement):
 class RHSExp(SemgusElement):
   def __init__(self):
     super().__init__()
+  def purify(self) -> 'RHSExp':
+    raise NotImplementedError
 
 class RHSAtom(RHSExp):
   def __init__(self):
@@ -54,34 +62,34 @@ class RHS(RHSExp):
   def purify(self):
     return RHS(self.rhsExp.purify())
 
-class LHSProductionSet(SemgusElement):
-  def __init__(self, lhs : LHS, rhsList : Sequence[RHS]):
+class LHSProductionSet(SemgusEvent):
+  def __init__(self, lhs : LHS, rhsList : list[RHS]):
     super().__init__()
     self.lhs = lhs
     self.rhsList = rhsList
   def __str__(self) -> str:
-    return f"({str(self.lhs)}\n" + Utils.sequence_to_str('\n', self.rhsList) + ")"
+    return f"({str(self.lhs)}\n" + Utils.list_to_str('\n', self.rhsList) + ")"
   def purify(self):
     return LHSProductionSet(self.lhs.purify(), Utils.trueMap(lambda x: x.purify(), self.rhsList))
 
 class SynthFun(SemgusElement):
-  def __init__(self, name : str, termType : str, grm : Sequence[LHSProductionSet]):
+  def __init__(self, name : str, termType : str, grm : list[LHSProductionSet]):
     super().__init__()
     self.name = name
     self.termType = termType
     self.grm = grm
   def __str__(self) -> str:
-    return f"(synth-term {str(self.name)} {str(self.termType)}\n(" + (Utils.sequence_to_str('\n', self.grm)) + ")\n)\n"
+    return f"(synth-term {str(self.name)} {str(self.termType)}\n(" + (Utils.list_to_str('\n', self.grm)) + ")\n)\n"
   def purify(self):
     return SynthFun(self.purifyName(self.name), self.purifyName(self.termType), purifyMap(self.grm))
 
 class RHSOp(RHSExp):
-  def __init__(self, opName : str, args : Sequence[RHSAtom]):
+  def __init__(self, opName : str, args : list[RHSAtom]):
     super().__init__()
     self.opName = opName
     self.args = args
   def __str__(self) -> str:
-    return f"({self.opName} " + Utils.sequence_to_str("\n", self.args) + ")"
+    return f"({self.opName} " + Utils.list_to_str("\n", self.args) + ")"
   def purify(self):
     return RHSOp(self.purifyName(self.opName), purifyMap(self.args))
 
@@ -112,7 +120,11 @@ class SMTFormula(SemgusElement):
   def purify(self):
     return SMTFormula(self.formula)
 
-class SortDecl(SemgusElement):
+class Decl(SemgusEvent):
+  def __init__(self):
+    super().__init__()
+
+class SortDecl(Decl):
   def __init__(self, sortName : str):
     super().__init__()
     self.sortName = sortName
@@ -121,7 +133,7 @@ class SortDecl(SemgusElement):
   def purify(self):
     return SortDecl(self.purifyName(self.sortName))
 
-class VarDecl(SemgusElement):
+class VarDecl(Decl):
   def __init__(self, varName : str, sortName : str):
     super().__init__()
     self.varName = varName
@@ -131,24 +143,24 @@ class VarDecl(SemgusElement):
   def purify(self):
     return VarDecl(self.purifyName(self.varName), self.purifyName(self.sortName))
   
-class RelDecl(SemgusElement):
-  def __init__(self, relName: str, args: Sequence[str]):
+class RelDecl(Decl):
+  def __init__(self, relName: str, args: list[str]):
     super().__init__()
     self.relName = relName
     self.args = args
   def __str__(self) -> str:
-    return f"(declare-rel {self.relName} " +  Utils.sequence_to_str(" ", self.args) + ")"
+    return f"(declare-rel {self.relName} " +  Utils.list_to_str(" ", self.args) + ")"
   def purify(self):
     return RelDecl(self.purifyName(self.relName), Utils.trueMap(self.purifyName, self.args))
 
-class NTDecl(SemgusElement):
+class NTDecl(Decl):
   def __init__(self, ntName : str, ntType: str, ntRel : RelDecl):
     super().__init__()
     self.ntName = ntName
     self.ntType = ntType
     self.ntRel = ntRel
   def __str__(self) -> str:
-    return f"(declare-nt {self.ntName} {self.ntType} ({self.ntRel.relName} (" + Utils.sequence_to_str(" ", self.ntRel.args) + ")))"
+    return f"(declare-nt {self.ntName} {self.ntType} ({self.ntRel.relName} (" + Utils.list_to_str(" ", self.ntRel.args) + ")))"
   def purify(self):
     return NTDecl(self.purifyName(self.ntName), self.purifyName(self.ntType), self.ntRel.purify())
 
@@ -162,7 +174,7 @@ class SMTVariable(SemgusElement):
   def purify(self):
     return SMTVariable(self.purifyName(self.name), self.tp)
     
-class SemanticCHC(SemgusElement):
+class SemanticCHC(SemgusEvent):
   def __init__(self, decl : RelDecl, vars : set[SMTVariable], head : SMTFormula, tail : SMTFormula):
     super().__init__()
     self.decl = decl
@@ -174,8 +186,7 @@ class SemanticCHC(SemgusElement):
   def purify(self):
     return SemanticCHC(self.decl.purify(), set(purifyMap(list(self.vars))), self.head.purify(), self.tail.purify())
 
-
-class SmtConstraint(SemgusElement):
+class SmtConstraint(SemgusEvent):
   def __init__(self, formula : SMTFormula):
     super().__init__()
     self.formula = formula
@@ -185,9 +196,9 @@ class SmtConstraint(SemgusElement):
     return SmtConstraint(self.formula.purify())
 
 class SemgusFile:
-  def __init__(self, commands : Sequence[SemgusElement]):
+  def __init__(self, commands : list[SemgusElement]):
     self.commands = commands
   def __str__(self) -> str:
-    return Utils.sequence_to_str("\n", self.commands)
+    return Utils.list_to_str("\n", self.commands)
   def purify(self):
     return SemgusFile(Utils.trueMap(lambda x: x.purify(), self.commands))

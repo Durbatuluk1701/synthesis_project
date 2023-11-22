@@ -1,7 +1,7 @@
-from typing import Mapping, Sequence
+from typing import Mapping, list
 import SemgusTypes as SGT
 import SMT
-from Utils import ImpossibleError, filterNones, sequence_to_str, trueMap
+from Utils import ImpossibleError, filterNones, list_to_str, trueMap
 
 counter = 0
 realizableDecl = SMT.SMTRelDeclaration("realizable", [])
@@ -21,13 +21,13 @@ def synRelName(ntName: str) -> str: return f"{ntName}.Syn"
 
 def synVarName(ntName: str, index: int) -> str: return f"{ntName}.SynVar{index}"
 
-def genNTCtxt(prods : Sequence[SGT.LHSProductionSet]) -> NTCtxt:
+def genNTCtxt(prods : list[SGT.LHSProductionSet]) -> NTCtxt:
   endMap: NTCtxt = {}
   for lhs in prods:
     endMap[lhs.lhs.nt.ntName] = lhs.lhs.nt.ntType
   return endMap
 
-def genLeafCtxt(ntcTxt: NTCtxt, prods : Sequence[SGT.LHSProductionSet]) -> LeafCtxt:
+def genLeafCtxt(ntcTxt: NTCtxt, prods : list[SGT.LHSProductionSet]) -> LeafCtxt:
   # NOTE: This was a complicated function, verify equiv
   endMap: LeafCtxt = {}
   for lhs in prods:
@@ -41,7 +41,7 @@ def genLeafCtxt(ntcTxt: NTCtxt, prods : Sequence[SGT.LHSProductionSet]) -> LeafC
 
 def genConstructorFromRHSExp(ntcTxt: NTCtxt, leafcTxt: LeafCtxt, rhsExp: SGT.RHSExp) -> SMT.SMTConstructor:
   if (isinstance(rhsExp, SGT.RHSOp)):
-    accessors: Sequence[SMT.SMTAccessor] = []
+    accessors: list[SMT.SMTAccessor] = []
     for val in rhsExp.args:
       if (isinstance(val, SGT.RHSNt)):
         accessors.append(SMT.SMTAccessor(genNewAccessor(rhsExp.opName), ntcTxt[val.nt.ntName]))
@@ -56,10 +56,10 @@ def genConstructorFromRHSExp(ntcTxt: NTCtxt, leafcTxt: LeafCtxt, rhsExp: SGT.RHS
     return SMT.SMTLeafConstructor(rhsExp.leafName)
   raise ImpossibleError("This should never have been reached!")
 
-def genDatatypeDecl(ntcTxt: NTCtxt, leafCtxt: LeafCtxt, prods: Sequence[SGT.LHSProductionSet]) -> SMT.SMTRecDatatypeDeclaration:
-  constructorMap: Mapping[str, Sequence[SMT.SMTConstructor]] = {}
+def genDatatypeDecl(ntcTxt: NTCtxt, leafCtxt: LeafCtxt, prods: list[SGT.LHSProductionSet]) -> SMT.SMTRecDatatypeDeclaration:
+  constructorMap: Mapping[str, list[SMT.SMTConstructor]] = {}
   for prod in prods:
-    rhsConsts: Sequence[SMT.SMTConstructor] = []
+    rhsConsts: list[SMT.SMTConstructor] = []
     for rProd in prod.rhsList:
       rhsConsts.append(genConstructorFromRHSExp(ntcTxt, leafCtxt, rProd.rhsExp))
     lhsType = ntcTxt[prod.lhs.nt.ntName]
@@ -87,25 +87,25 @@ def translateCHC(chc : SGT.SemanticCHC) -> SMT.CHCRule:
 def getVarDecl(varDecl: SGT.VarDecl) -> SMT.SMTVarDeclaration: return SMT.SMTVarDeclaration(varDecl.varName, varDecl.sortName)
 def genRelDecl(relDecl: SGT.RelDecl) -> SMT.SMTRelDeclaration: return SMT.SMTRelDeclaration(relDecl.relName, relDecl.args)
 
-def genSpecificationCHC(constraints : Sequence[SGT.SmtConstraint]) -> SMT.CHCRule:
-  constFormulas: Sequence[str] = []
+def genSpecificationCHC(constraints : list[SGT.SmtConstraint]) -> SMT.CHCRule:
+  constFormulas: list[str] = []
   for val in constraints:
     constFormulas.append(val.formula.formula)
-  formulaStr = sequence_to_str(" ", constFormulas)
+  formulaStr = list_to_str(" ", constFormulas)
   premiseStr = formulaStr if (len(constFormulas) == 1) else f"(and {formulaStr})"
   return SMT.CHCRule(SMT.SMTFormulaHolder(premiseStr), realizableRel)
 
-def translateLHSProductionSet(l : Sequence[SGT.LHSProductionSet]) -> tuple[NTCtxt, LeafCtxt, SMT.SMTRecDatatypeDeclaration]:
+def translateLHSProductionSet(l : list[SGT.LHSProductionSet]) -> tuple[NTCtxt, LeafCtxt, SMT.SMTRecDatatypeDeclaration]:
   ntCtxt = genNTCtxt(l)
   leafCtxt = genLeafCtxt(ntCtxt, l)
   datatypeDecl = genDatatypeDecl(ntCtxt, leafCtxt, l)
   return (ntCtxt, leafCtxt, datatypeDecl)
 
-def genSyntaxDecls(l: Sequence[SGT.LHSProductionSet]) -> set[SMT.SMTRelDeclaration]:
+def genSyntaxDecls(l: list[SGT.LHSProductionSet]) -> set[SMT.SMTRelDeclaration]:
   return set(map(lambda l: SMT.SMTRelDeclaration(synRelName(l.lhs.nt.ntName), [l.lhs.nt.ntType]), l))
 
-def genSyntaxRules(l : Sequence[SGT.LHSProductionSet]) -> tuple[Sequence[SMT.CHCRule], set[SMT.SMTVarDeclaration]]:
-  allCHCRules: Sequence[SMT.CHCRule] = []
+def genSyntaxRules(l : list[SGT.LHSProductionSet]) -> tuple[list[SMT.CHCRule], set[SMT.SMTVarDeclaration]]:
+  allCHCRules: list[SMT.CHCRule] = []
   allVarDecs: set[SMT.SMTVarDeclaration] = set()
   
   for lhs in l:
@@ -113,11 +113,11 @@ def genSyntaxRules(l : Sequence[SGT.LHSProductionSet]) -> tuple[Sequence[SMT.CHC
     headVarDecl = SMT.SMTVarDeclaration(headVar, lhs.lhs.nt.ntType)
     headRel = synRelName(lhs.lhs.nt.ntName)
     head = SMT.SMTFormulaHolder(f"({headRel} {headVar})")
-    premisesDecls: Sequence[tuple[SMT.SMTFormulaHolder, set[SMT.SMTVarDeclaration]]] = []
+    premisesDecls: list[tuple[SMT.SMTFormulaHolder, set[SMT.SMTVarDeclaration]]] = []
     for rhs in lhs.rhsList:
       if (isinstance(rhs, SGT.RHSOp)):
-        rhsTermStringVals: Sequence[str] = []
-        rhsPremisesVals: Sequence[SMT.SMTFormulaHolder] = []
+        rhsTermStringVals: list[str] = []
+        rhsPremisesVals: list[SMT.SMTFormulaHolder] = []
         rhsVarDecls: set[SMT.SMTVarDeclaration] = set()
         for i in range(len(rhs.args)):
           arg = rhs.args[i]
@@ -132,8 +132,8 @@ def genSyntaxRules(l : Sequence[SGT.LHSProductionSet]) -> tuple[Sequence[SMT.CHC
 
           else:
             raise ImpossibleError("Error, only types shouldve been RHSNt and RHSLeaf")
-        rhsTermString = sequence_to_str(" ", rhsTermStringVals)
-        rhsPremiseString = sequence_to_str(" ", rhsPremisesVals)
+        rhsTermString = list_to_str(" ", rhsTermStringVals)
+        rhsPremiseString = list_to_str(" ", rhsPremisesVals)
         eqString = f"(= {headVar} ({rhs.opName} {rhsTermString}))"
         premisesDecls.append((SMT.SMTFormulaHolder(f"(and {eqString} {rhsPremiseString})"), rhsVarDecls))
       if (isinstance(rhs, SGT.RHSNt)):
@@ -149,7 +149,7 @@ def genSyntaxRules(l : Sequence[SGT.LHSProductionSet]) -> tuple[Sequence[SMT.CHC
            set())
         )
         continue
-    premises: Sequence[SMT.CHCRule] = []
+    premises: list[SMT.CHCRule] = []
     decls: set[SMT.SMTVarDeclaration] = set()
     for (fh, vd) in premisesDecls:
       premises.append(SMT.CHCRule(fh, head))
@@ -161,7 +161,7 @@ def genSyntaxRules(l : Sequence[SGT.LHSProductionSet]) -> tuple[Sequence[SMT.CHC
   return (allCHCRules, allVarDecs)
 
 
-def translateSynthFun(s : SGT.SynthFun) -> tuple[set[SMT.SMTVarDeclaration], set[SMT.SMTRelDeclaration], Sequence[SMT.CHCRule]]:
+def translateSynthFun(s : SGT.SynthFun) -> tuple[set[SMT.SMTVarDeclaration], set[SMT.SMTRelDeclaration], list[SMT.CHCRule]]:
   (syntaxRules, syntaxVarDecls) = genSyntaxRules(s.grm)
   syntaxRelDecls = genSyntaxDecls(s.grm)
   funDecl = SMT.SMTVarDeclaration(s.name, s.termType)
@@ -169,7 +169,7 @@ def translateSynthFun(s : SGT.SynthFun) -> tuple[set[SMT.SMTVarDeclaration], set
   return (syntaxVarDecls, syntaxRelDecls, syntaxRules)
 
 
-def semgus2SMT(semgusFile: SGT.SemgusFile) -> Sequence[SMT.SMTCommand]:
+def semgus2SMT(semgusFile: SGT.SemgusFile) -> list[SMT.SMTCommand]:
   univGrm = filterNones(trueMap(lambda x: x if isinstance(x, SGT.LHSProductionSet) else None, semgusFile.commands))
 
   constraints = filterNones(trueMap(lambda x: x if isinstance(x, SGT.SmtConstraint) else None, semgusFile.commands))
@@ -195,7 +195,7 @@ def semgus2SMT(semgusFile: SGT.SemgusFile) -> Sequence[SMT.SMTCommand]:
 
   syntaxVarDecls: set[SMT.SMTVarDeclaration] = set()
   syntaxRelDecls: set[SMT.SMTRelDeclaration] = set()
-  syntaxRules: Sequence[SMT.CHCRule] = []
+  syntaxRules: list[SMT.CHCRule] = []
   for fn in synthFuns:
     (varset, relset, rulelist) = translateSynthFun(fn)
     syntaxVarDecls.union(varset)
@@ -204,17 +204,17 @@ def semgus2SMT(semgusFile: SGT.SemgusFile) -> Sequence[SMT.SMTCommand]:
     
   specCHC = genSpecificationCHC(constraints)
 
-  returnSequence: Sequence[SMT.SMTCommand] = []
-  returnSequence.append(datatypeDecls)
-  returnSequence.extend(semanticVarDecls)
-  returnSequence.extend(list(syntaxVarDecls))
-  returnSequence.extend(semanticDecls)
-  returnSequence.append(realizableDecl)
-  returnSequence.extend(list(syntaxRelDecls))
-  returnSequence.extend(syntaxRules)
-  returnSequence.extend(semanticRules)
-  returnSequence.append(specCHC)
-  returnSequence.append(query)
+  returnlist: list[SMT.SMTCommand] = []
+  returnlist.append(datatypeDecls)
+  returnlist.extend(semanticVarDecls)
+  returnlist.extend(list(syntaxVarDecls))
+  returnlist.extend(semanticDecls)
+  returnlist.append(realizableDecl)
+  returnlist.extend(list(syntaxRelDecls))
+  returnlist.extend(syntaxRules)
+  returnlist.extend(semanticRules)
+  returnlist.append(specCHC)
+  returnlist.append(query)
 
-  return returnSequence
+  return returnlist
 

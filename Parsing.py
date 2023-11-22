@@ -1,5 +1,6 @@
-from typing import Sequence
-from Utils import ImpossibleError, sequence_to_str, trueMap
+from typing import list
+from SemgusTypes import LHSProductionSet, NTDecl, RelDecl, SortDecl, SynthFun, VarDecl
+from Utils import ImpossibleError, list_to_str, trueMap
 
 
 class SExpr:
@@ -52,11 +53,11 @@ class SExprName(SExprLeaf):
     return self.s
 
 class SExprList(SExpr):
-  def __init__(self, slist: Sequence[SExpr]):
+  def __init__(self, slist: list[SExpr]):
     super().__init__()
     self.slist = slist
   def __str__(self) -> str:
-    listStr = sequence_to_str(" ", self.slist)
+    listStr = list_to_str(" ", self.slist)
     return f"({listStr})"
   def removeAnnotations(self) -> SExpr:
     if (isinstance(self.slist[0], SExprName) and self.slist[0].s == "!"):
@@ -217,4 +218,97 @@ class Parser:
   def parse(self, tokens : list[Token]) -> SExpr:
     tokens.append(RParen())
     return self.parseNewSExpr(tokens, []).res
+
+class TranslatorError(Exception):
+    def __init__(self, message="Error encountered during translation"):
+        self.message = message
+        super().__init__(self.message)
+
+class Translator:
+  def __init__(self) -> None:
+    pass
+
+  def parseNewSortDecl(self) -> SortDecl:
+    raise NotImplementedError
+
+  def parseNewVarDecl(self, varNameArgs : SExpr, sortNameArg : SExpr) -> list[VarDecl]:
+    varNames: list[str] = []
+    sortName: str | None = None
+    if (isinstance(varNameArgs, SExprName)):
+      varNames = [varNameArgs.s]
+    elif (isinstance(varNameArgs, SExprList)):
+      for val in varNameArgs.slist:
+        if (isinstance(val, SExprName)):
+          varNames.append(val.s)
+        else:
+          raise TranslatorError("Malformed var names in declare-var")
+    else:
+      raise TranslatorError("Predefined names are not allowed as variable names")
+    if (isinstance(sortNameArg, SExprName)):
+      sortName = sortNameArg.s
+    else:
+      raise TranslatorError("Malformed sort name in declare-var")
+    retList = []
+    for var in varNames:
+      retList.append(VarDecl(var, sortName))
+    return retList
+
+  def parseNewRelDecl(self, args: list[SExpr]) -> RelDecl:
+    relName: str | None = None
+    if (isinstance(args[0], SExprName)):
+      relName = args[0].s
+    else:
+      raise TranslatorError("Malformed relation name in declare-rel")
+    argSorts = []
+    if (isinstance(args[1], SExprList)):
+      for val in args[1].slist:
+        if (isinstance(val, SExprName)):
+          argSorts.append(val.s)
+        else:
+          raise TranslatorError("Malformed sort argument in declare-rel")
+    else:
+      raise TranslatorError("malformed sort block in declare-rel")
+    return RelDecl(relName, argSorts)
+
+  def praseNewNTDecl(self, ntNameArg: SExpr, ntTypeArg: SExpr, ntRelArg: SExpr) -> NTDecl:
+    ntName: str | None = None
+    if (isinstance(ntNameArg, SExprName)):
+      ntName = ntNameArg.s
+    else:
+      raise TranslatorError("Malformed nonterminal name in declare-nt")
+    ntType: str | None = None
+    if (isinstance(ntTypeArg, SExprName)):
+      ntType = ntTypeArg.s
+    else:
+      raise TranslatorError("Malformed term-type name in declare-nt")
+    ntRel = None
+    if (isinstance(ntRelArg, SExprList)):
+      ntRel = self.parseNewRelDecl(ntRelArg.slist)
+    else:
+      raise TranslatorError("Malformed relation declareation in declare-nt")
+    return NTDecl(ntName, ntType, ntRel)
+
+  def parseSExprCommand(self, s : SExpr) -> list[SemgusEvent]:
+
+  def parseNewSynthBlock(self, termNameArg: SExpr, termTypeArg : SExpr, grmBlockArg : SExpr) -> SynthFun:
+    name : str | None = None
+    if (isinstance(termNameArg, SExprName)):
+      name = termNameArg.s
+    else:
+      raise TranslatorError("Malformed synth-term name in synth-term")
+    termTp : str | None = None
+    if (isinstance(termTypeArg, SExprName)):
+      termTp = termTypeArg.s
+    else:
+      raise TranslatorError("Malformed synth-term term-type in synth-term")
+    cmds = None
+    if (isinstance(grmBlockArg, SExprList)):
+      cmds = trueMap(self.parseSExprCommand, grmBlockArg.slist)
+    else:
+      raise TranslatorError("Grammar block malformed in synth-term")
+    nts = filter(lambda x: isinstance(x, NTDecl), cmds)
+    vars = filter(lambda x: isinstance(x, VarDecl), cmds) 
+    prodSets = filter(lambda x: isinstance(x, LHSProductionSet), cmds)
+
+
 

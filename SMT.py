@@ -1,4 +1,3 @@
-from typing import Sequence
 import Utils
 
 class SMT:
@@ -32,12 +31,12 @@ class SMTVarDeclaration(Declaration):
     return f"(declare-var {self.varName} {self.sortName})"
 
 class SMTRelDeclaration(Declaration):
-  def __init__(self, relName : str, sortNames: Sequence[str]):
+  def __init__(self, relName : str, sortNames: list[str]):
     super().__init__()
     self.relName = relName
     self.sortNames = sortNames
   def __str__(self) -> str:
-    return f"(declare-rel {self.relName} (" + Utils.sequence_to_str(" ", self.sortNames) + "))"
+    return f"(declare-rel {self.relName} (" + Utils.list_to_str(" ", self.sortNames) + "))"
 
 class SMTConstructor:
   def __init__(self): 
@@ -51,12 +50,12 @@ class SMTAccessor:
     return f"({self.accessorName} {self.argSort})"
 
 class SMTOpConstructor(SMTConstructor):
-  def __init__(self, name : str, accessors : Sequence[SMTAccessor]):
+  def __init__(self, name : str, accessors : list[SMTAccessor]):
     super().__init__()
     self.name = name
     self.accessors = accessors
   def __str__(self) -> str:
-    return f"({self.name} " + Utils.sequence_to_str(" ", self.accessors) + ")"
+    return f"({self.name} " + Utils.list_to_str(" ", self.accessors) + ")"
     
 class SMTLeafConstructor(SMTConstructor):
   def __init__(self, name : str):
@@ -66,19 +65,19 @@ class SMTLeafConstructor(SMTConstructor):
     return self.name
 
 class SMTDatatypeDeclaration(Declaration):
-  def __init__(self, typeName : str, constructors : Sequence[SMTConstructor]):
+  def __init__(self, typeName : str, constructors : list[SMTConstructor]):
     super().__init__()
     self.typeName = typeName
     self.constructors = constructors
   def __str__(self) -> str:
-    return f"({self.typeName} " + Utils.sequence_to_str(" ", self.constructors) + ")"
+    return f"({self.typeName} " + Utils.list_to_str(" ", self.constructors) + ")"
 
 class SMTRecDatatypeDeclaration(Declaration):
-  def __init__(self, types : Sequence[SMTDatatypeDeclaration]):
+  def __init__(self, types : list[SMTDatatypeDeclaration]):
     super().__init__()
     self.types = types
   def __str__(self) -> str:
-    return f"(declare-datatypes () (" + Utils.sequence_to_str("\n", self.types) + "))"
+    return f"(declare-datatypes () (" + Utils.list_to_str("\n", self.types) + "))"
 
 class SMTFormulaHolder(SMTExpr):
   def __init__(self, formula : str):
